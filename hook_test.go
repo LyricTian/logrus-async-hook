@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"os"
 	"reflect"
+	"sync"
 	"testing"
 
 	"github.com/sirupsen/logrus"
@@ -13,10 +14,13 @@ import (
 
 type fileHook struct {
 	file *os.File
+	lock *sync.RWMutex
 }
 
 func (f *fileHook) Exec(entry *logrus.Entry) error {
-	entry.Logger.Formatter = new(logrus.JSONFormatter)
+	f.lock.Lock()
+	defer f.lock.Unlock()
+
 	s, err := entry.String()
 	if err != nil {
 		return err
@@ -41,8 +45,9 @@ func TestHook(t *testing.T) {
 		return
 	}
 
+	lock := new(sync.RWMutex)
 	hook := New(
-		SetExec(&fileHook{file}),
+		SetExec(&fileHook{file: file, lock: lock}),
 		SetFilter(func(entry *logrus.Entry) *logrus.Entry {
 			if _, ok := entry.Data["foo2"]; ok {
 				delete(entry.Data, "foo2")
@@ -52,6 +57,7 @@ func TestHook(t *testing.T) {
 		SetExtra(map[string]interface{}{"foo": "bar"}),
 	)
 	log := logrus.New()
+	log.SetFormatter(new(logrus.JSONFormatter))
 	log.AddHook(hook)
 
 	log.WithField("foo2", "bar").Infof("test foo")
