@@ -163,7 +163,7 @@ func (h *Hook) exec(entry *logrus.Entry) {
 
 	err := h.opts.exec.Exec(entry)
 	if err != nil && h.opts.out != nil {
-		fmt.Fprintf(h.opts.out, "[Mongo-Hook] Execution error: %s", err.Error())
+		fmt.Fprintf(h.opts.out, "[Async-Hook] Execution error: %s", err.Error())
 	}
 }
 
